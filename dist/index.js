@@ -34,22 +34,27 @@ var _require = require("fs"),
 function getFiles() {
   var path = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "./";
   var type = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "json";
-
+  var langName = arguments.length > 2 && arguments[2] 
+  
   try {
     var entries = readdirSync(path, {
       withFileTypes: true
     }); //
     // Get files within the current directory and returns an array with the files paths
     //
-
+   
     var files = entries.filter(function (file) {
-      return !file.isDirectory() && file.name.split(".").pop() === type;
+      if(!langName){
+        return !file.isDirectory() && file.name.split(".").pop() === type ;
+      }else{
+        return !file.isDirectory() && file.name.split(".").pop() === type &&file.name.match(langName) ;
+      }
+     
     }).map(function (file) {
       return "".concat(path, "/").concat(file.name);
     }); //
     // Get folders within the current directory
     //
-
     var folders = entries.filter(function (folder) {
       return folder.isDirectory();
     }); //
@@ -86,19 +91,21 @@ function getFiles() {
 
 
 function getMessages(messages, file) {
+  //console.log('getMessages>>>>>>>',messages,file)
   try {
-    var matched = file.match(/(.+\/)*(.+)\.(.+)\.json/i);
-
+   // var matched = file.match(/(.+\/)*(.+)\.(.+)\.json/i);
+   var matched = file.match(/([A-Za-z0-9-_]+)\./i);
     if (matched && matched.length > 1) {
-      var lang = matched[3];
-      var section = matched[2];
-
+      // var lang = matched[3];
+      // var section = matched[2];
+      var lang = matched[1];
       if (!messages[lang]) {
         messages[lang] = {};
       }
 
       var data = readFileSync(file);
-      messages[lang][section] = JSON.parse(data);
+     // messages[lang][section] = JSON.parse(data);
+     messages[lang]= JSON.parse(data);
     }
 
     return messages;
@@ -116,8 +123,11 @@ var viteI18nResources = function viteI18nResources() {
   var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
   var virtualFileId = "vite-i18n-resources";
   var path = options.path;
-  var files = getFiles(path, "json");
+  var lang=options.lang;
+
+  var files = getFiles(path, "json",lang);
   var messages = files.reduce(getMessages, {});
+  //console.log('messages1111>>>>',messages)
   return {
     name: "vite-plugin-i18n-resources",
     resolveId: function resolveId(id) {
@@ -138,7 +148,8 @@ var viteI18nResources = function viteI18nResources() {
       var file = _ref.file,
           server = _ref.server;
       if (!file.includes(path) || file.split(".").pop() !== "json") return;
-      var matched = file.match(/(.+\/)*(.+)\.(.+)\.json/i);
+      //var matched = file.match(/(.+\/)*(.+)\.(.+)\.json/i);
+      var matched = file.match(/([A-Za-z0-9-_]+)\./i);
 
       if (matched && matched.length > 1) {
         files = getFiles(path, "json");
